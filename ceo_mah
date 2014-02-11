@@ -1,0 +1,269 @@
+import uuid
+import requests
+import sys
+from PIL import Image
+from pyocr import pyocr
+from datetime import datetime
+from bs4 import BeautifulSoup
+import csv
+from time import sleep
+
+startTime 	= datetime.now()
+USER_AGENT 	= 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:26.0) Gecko/20100101 Firefox/26.0'
+CAPTCHA_URL = 'http://103.23.150.75/marathi/GenerateCaptcha.ashx'
+url 		= 'http://103.23.150.75/marathi/FrmSearchPage.aspx?ID=1'
+search_space = 'abcdefghijklmnopqrstuvwxyz'
+#search_space = 'z'
+captcha_string = ''
+
+def fetchDistricts():
+	# Fetch the page
+	req = urllib2.Request(url)
+	response = urllib2.urlopen(req)
+	the_page = response.read()
+
+	# Parse it to get our select with all the ids
+	soup = BeautifulSoup(the_page)
+	select = soup.find_all(id='ddldisen')
+	assembly_select = select[0]
+
+	isFirst = True
+	optionIterator = assembly_select.children
+
+	for option in optionIterator:
+
+		# Covert to uncide string from BS object
+		option_string = term(option)
+
+		# Ignore first option, it's empty
+		if(isFirst):
+			option = next(optionIterator)
+			isFirst = False
+		
+		# Now fetch both option values and names
+		x = option_string.find('value="') + 7
+		y = option_string.find('"',x)
+		option_val =  option_string[x:y]
+
+		# Find corresponding name
+		x = option_string.find
+
+def fetchAssemblies(district):
+	payload = {
+				 'ddldisen':district
+				 ,'__EVENTTARGET':'ddldisen'
+				 ,'__EVENTARGUMENT':''
+				 ,'__LASTFOCUS':''
+				 ,'__VIEWSTATE':'/wEPDwUKLTIyNjQwMzUwNw9kFgICAw9kFgYCAQ8PFgIeBFRleHQFMlByZXBhcmVkIEJ5IDogQ2hpZWYgRWxlY3RvcmFsIE9mZmljZXIsIE1haGFyYXNodHJhZGQCAw8PFgIeB1Zpc2libGVnZBYKAgEPEA8WAh8BaGRkZGQCAw8QDxYCHgdDaGVja2VkZ2RkZGQCBQ9kFiICAQ8QDxYCHwJnZGRkZAIHDxAPFgYeDURhdGFUZXh0RmllbGQFCmVkaXN0X25hbWUeDkRhdGFWYWx1ZUZpZWxkBQdkaXN0X25vHgtfIURhdGFCb3VuZGdkEBUkD1NlbGVjdCBEaXN0cmljdB5BaG1lZG5hZ2FyICAgICAgICAgICAgICAgICAgICAeQWtvbGEgICAgICAgICAgICAgICAgICAgICAgICAgHkFtYXJhdmF0aSAgICAgICAgICAgICAgICAgICAgIB5BdXJhbmdhYmFkICAgICAgICAgICAgICAgICAgICAeQmVlZCAgICAgICAgICAgICAgICAgICAgICAgICAgHkJoYW5kYXJhICAgICAgICAgICAgICAgICAgICAgIB5CdWxkaGFuYSAgICAgICAgICAgICAgICAgICAgICAeQ2hhbmRyYXB1ciAgICAgICAgICAgICAgICAgICAgHkRodWxlICAgICAgICAgICAgICAgICAgICAgICAgIB5HYWRjaGlyb2xpICAgICAgICAgICAgICAgICAgICAeR29uZGl5YSAgICAgICAgICAgICAgICAgICAgICAgHkhpbmdvbGkgICAgICAgICAgICAgICAgICAgICAgIB5KYWxnYW9uICAgICAgICAgICAgICAgICAgICAgICAeSmFsbmEgICAgICAgICAgICAgICAgICAgICAgICAgHktvbGhhcHVyICAgICAgICAgICAgICAgICAgICAgIB5MYXR1ciAgICAgICAgICAgICAgICAgICAgICAgICAeTXVtYmFpIENpdHkgICAgICAgICAgICAgICAgICAgHk11bWJhaSBTdWJ1cmJhbiBEaXN0LiAgICAgICAgIB5OYWdwdXIgICAgICAgICAgICAgICAgICAgICAgICAeTmFuZGVkICAgICAgICAgICAgICAgICAgICAgICAgHk5hbmR1cmFiYXIgICAgICAgICAg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'
+				 ,'__EVENTVALIDATION':'/wEWLwKtlNOlBwL+8davCQK7gu6qBwKPgfiLDQLU76dlAsrv32YCz++nZQLN76dlAsvvi2UCyu/DZgLL7+dmAsjvp2UCy+/TZgLK76dlAsvv72YCy+/rZgLL799mAsnvp2UCy++HZQLJ79dmAsrvh2UCyu/TZgLK7+9mAtPvp2UCy+/bZgLL76dlAsrv52YCy+/DZgLK79tmAsrv12YCye/vZgLJ79tmAsnv62YCye/TZgLJ7+dmAsrv62YCyu+LZQLc76dlAs7vp2UCy+/XZgLB2tj/BQLs0bLrBgLs0fbZDALfnMv2CwKFjoGkDQLNzJeyDwKtkuWiCv0yS8LtDMbHyPleLxwIDXj5JYRnz3INK48RiijGZI8W'
+				 ,'from':'rbtass'
+				 ,'from1':'rbtass0'
+				 ,'txtesur':''
+				 ,'TextBox1':''
+				 ,'TextBox2':''
+				 ,'txtCaptchaText':''
+
+			}
+
+	response = session.post(url, data=payload)
+
+	# Parse it to get our select with all the ids
+	soup = BeautifulSoup(response.text)
+	select = soup.find_all(id='DropDownList1')
+	assembly_select = select[0]
+
+	# List to store all the assembly info
+	assemblies = []
+
+	optionIterator = assembly_select.children
+
+	for option in optionIterator:
+
+		# Covert to uncide string from BS object
+		option_string = unicode(option).encode('utf-8').strip()
+
+		# Remove blank lines
+		if(option_string == ''):
+			continue
+
+		# Now fetch both option values and names
+		x = option_string.find('value="') + 7
+		y = option_string.find('"',x)
+		option_val =  option_string[x:y].strip()
+
+		# Find corresponding name
+		x = option_string.find('">') + 2
+		y = option_string.find('<',x)
+		option_name = option_string[x:y].strip()
+
+		assembly_data = {'name':option_name,'id':option_val}
+		assemblies.append(assembly_data)
+
+	return assemblies
+
+def fetchCaptcha():
+	response = session.get(CAPTCHA_URL)
+
+	# User random filename to save captcha image
+	saved_captcha_filename = unicode(uuid.uuid4()).encode('utf-8')
+
+	# Save the CAPTCHA image to disk
+	output = open(saved_captcha_filename+'.jpg','wb')
+	output.write(response.content)
+	output.close()
+
+	return saved_captcha_filename
+
+def parseCaptcha(filename):
+	tools = pyocr.get_available_tools()[:]
+	if len(tools) == 0:
+	    print "No OCR tool found"
+	    sys.exit(1)
+	try:
+		decoded = tools[0].image_to_string(Image.open(filename+'.jpg'), lang='eng')
+		return decoded
+	except Exception, e:
+		# Wait for a bit and retry
+		print '######## Waiting and retrying CAPTCHA storage'
+		sleep(2)
+		return parseCaptcha(filename)
+
+
+def search(term,district,assembly):
+
+	global citizen_details
+
+	payload = {
+				 'ddldisen':district
+				 ,'__EVENTTARGET':''
+				 ,'__EVENTARGUMENT':''
+				 ,'__LASTFOCUS':''
+				 ,'__VIEWSTATE':'/wEPDwUKLTIyNjQwMzUwNw9kFgICAw9kFgYCAQ8PFgIeBFRleHQFMlByZXBhcmVkIEJ5IDogQ2hpZWYgRWxlY3RvcmFsIE9mZmljZXIsIE1haGFyYXNodHJhZGQCAw8PFgIeB1Zpc2libGVnZBYKAgEPEA8WAh8BaGRkZGQCAw8QDxYCHgdDaGVja2VkZ2RkZGQCBQ9kFiICAQ8QDxYCHwJnZGRkZAIHDxAPFgYeDURhdGFUZXh0RmllbGQFCmVkaXN0X25hbWUeDkRhdGFWYWx1ZUZpZWxkBQdkaXN0X25vHgtfIURhdGFCb3VuZGdkEBUkD1NlbGVjdCBEaXN0cmljdB5BaG1lZG5hZ2FyICAgICAgICAgICAgICAgICAgICAeQWtvbGEgICAgICAgICAgICAgICAgICAgICAgICAgHkFtYXJhdmF0aSAgICAgICAgICAgICAgICAgICAgIB5BdXJhbmdhYmFkICAgICAgICAgICAgICAgICAgICAeQmVlZCAgICAgICAgICAgICAgICAgICAgICAgICAgHkJoYW5kYXJhICAgICAgICAgICAgICAgICAgICAgIB5CdWxkaGFuYSAgICAgICAgICAgICAgICAgICAgICAeQ2hhbmRyYXB1ciAgICAgICAgICAgICAgICAgICAgHkRodWxlICAgICAgICAgICAgICAgICAgICAgICAgIB5HYWRjaGlyb2xpICAgICAgICAgICAgICAgICAgICAeR29uZGl5YSAgICAgICAgICAgICAgICAgICAgICAgHkhpbmdvbGkgICAgICAgICAgICAgICAgICAgICAgIB5KYWxnYW9uICAgICAgICAgICAgICAgICAgICAgICAeSmFsbmEgICAgICAgICAgICAgICAgICAgICAgICAgHktvbGhhcHVyICAgICAgICAgICAgICAgICAgICAgIB5MYXR1ciAgICAgICAgICAgICAgICAgICAgICAgICAeTXVtYmFpIENpdHkgICAgICAgICAgICAgICAgICAgHk11bWJhaSBTdWJ1cmJhbiBEaXN0LiAgICAgICAgIB5OYWdwdXIgICAgICAgICAgICAgICAgICAgICAgICAeTmFuZGVkICAgICAgICAgICAgICAgICAgICAgICAgHk5hbmR1cmFiYXIgICAgICAgICAgICAgICAgICAgIB5OYXNoaWsgICAgICAgICAgICAgICAgICAgICAgICAeUGFyYmhhbmkgICAgICAgICAgICAgICAgICAgICAgHlB1bmUgICAgICAgICAgICAgICAgICAgICAgICAgIB5SYWlnYWQgICAgICAgICAgICAgICAgICAgICAgICAeUmF0bmFnaXJpICAgICAgICAgICAgICAgICAgICAgHlNhbmdsaSAgICAgICAgICAgICAgICAgICAgICAgIB5TYXRhcmEgICAgICAgICAgICAgICAgICAgICAgICAeU2luZGh1ZHVyZyAgICAgICAgICAgICAgICAgICAgHlNvbGFwdXIgICAgICAgICAgICAgICAgICAgICAgIB5UaGFuZSAgICAgICAgICAgICAgICAgICAgICAgICAeVXNtYW5hYmFkICAgICAgICAgICAgICAgICAgICAgHldhcmRoYSAgICAgICAgICAgICAgICAgICAgICAgIB5XYXNoaW0gICAgICAgICAgICAgICAgICAgICAgICAeWWF2YXRtYWwgICAgICAgICAgICAgICAgICAgICAgFSQBMAIyNgE1ATcCMTkCMjcCMTABNAIxMwEyAjEyAjExAjE2ATMCMTgCMzQCMjgCMjMCMjIBOQIxNQExAjIwAjE3AjI1AjI0AjMyAjM1AjMxAjMzAjMwAjIxAjI5ATgBNgIxNBQrAyRnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2cWAQIRZAIJDw8WAh8BaGRkAgsPDxYCHwFoZGQCDQ8PFgIfAWhkZAIPDw8WAh8BZ2RkAhEPEA8WCB8BZx8DBQhlYWNfbmFtZR8EBQVhY19ubx8FZ2QQFQojQnljdWxsYSAgICAgICAgICAgICAgICAgICAgICAgICAgICAjQ29sYWJhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAjRGhhcmF2aSAoU0MpICAgICAgICAgICAgICAgICAgICAgICAjTWFoaW0gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAjTWFsYWJhciBIaWxsICAgICAgICAgICAgICAgICAgICAgICAjTXVtYmFkZXZpICAgICAgICAgICAgICAgICAgICAgICAgICAjU2hpdmFkaSAgICAg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'
+				 ,'__EVENTVALIDATION':'/wEWOgLWkbuZCQL+8davCQK7gu6qBwKPgfiLDQLEgI2LDALU76dlAsrv32YCz++nZQLN76dlAsvvi2UCyu/DZgLL7+dmAsjvp2UCy+/TZgLK76dlAsvv72YCy+/rZgLL799mAsnvp2UCy++HZQLJ79dmAsrvh2UCyu/TZgLK7+9mAtPvp2UCy+/bZgLL76dlAsrv52YCy+/DZgLK79tmAsrv12YCye/vZgLJ79tmAsnv62YCye/TZgLJ7+dmAsrv62YCyu+LZQLc76dlAs7vp2UCy+/XZgKIt6vqDgL76vGrCALMgI11AtnzxKoPAq3YzcEEAtbB79wCAueNiZ8DAvGpr8AOArTKot8BAsLk5oEFAsHa2P8FAuzRsusGAuzR9tkMAt+cy/YLAoWOgaQNAs3Ml7IPAq2S5aIKE3h+mResj84m2T2fViHbkGiNve4kIJqS6rlM7yK7/Z4='
+				 ,'from':'rbtass'
+				 ,'from1':'rbtass0'
+				 ,'txtesur':''
+				 ,'TextBox1':term
+				 ,'TextBox2':''
+				 ,'txtCaptchaText':captcha_string
+				 ,'DropDownList1':assembly
+				 ,'btnSearchEn':'Search'
+
+			}
+
+	response = session.post(url, data=payload)
+
+	# Time to parse the HTML
+	soup = BeautifulSoup(response.text)
+
+	rows = soup.find_all('tr')
+
+	data_found = False
+
+	# First 15 <tr> are all form and headers
+	for row in rows[15:]:
+
+		# Init citizen list
+		citizen = []
+
+		# Ignore blank lines
+		if(unicode(row).strip() == ''):
+			continue
+
+		data_found = True
+
+		# Get the cells and ignore last 3 which are just links
+		cells = row.find_all('td')[:-3]
+
+		# Store all the values in a Dict
+		for cell in cells:
+			citizen.append(unicode(cell.string).encode('utf-8'))
+
+		if(len(citizen) > 0):
+			# Additionally add the district and assembly ids at the end
+			citizen.append(district)
+			citizen.append(assembly)
+			#print citizen
+			#citizen_details.append(citizen)
+			output = open("output.csv", "ab")
+			writer = csv.writer(output)
+			writer.writerow(citizen)
+		else:
+			# We've got an error
+			return False
+	print len(citizen_details)
+	return data_found
+
+def generateCaptcha():
+
+	global captcha_string, session
+
+	# Close the session and re-initiate
+	session.close()
+	session = requests.Session()
+
+	print '######## Getting the CAPTCHA'
+
+	# Initial GET for session
+	session.get(url)
+
+	# Fetch the captcha image for this session
+	captcha = fetchCaptcha()
+
+	# Run image analysis on the image
+	captcha_string = parseCaptcha(captcha)
+	print captcha_string
+
+
+# fetchAssemblyId(url)
+
+# Global sessions object
+session = requests.Session()
+
+# Set common headers
+session.headers.update({ 'User-Agent' : USER_AGENT, 'Referer' : url })
+
+# Get captcha initially
+generateCaptcha()
+
+# Fetch the assemblies
+assemblies = fetchAssemblies(23)
+
+citizen_details = []
+# Loop thorugh all the assemblies and fetch the citizen data
+for assembly in assemblies:
+	print '######## Starting search for Assembly no.'+assembly['id']	
+	for char in search_space:
+		counter = 1		
+		print '######## Searching character \''+char+'\' ...'
+		while(counter < 5):
+			result = search(char,23,assembly['id'])
+			if(result):
+				break
+			else:
+				counter = counter + 1
+				
+				# Fetch the captcha image again for this session
+				captcha = fetchCaptcha()
+
+				# Run image analysis on the image
+				captcha_string = parseCaptcha(captcha)
+
+				print '######## New Captcha string is: '+captcha_string
+				print '######## Trying again, request failed'
+
+print len(citizen_details)
+
+# with open("output.csv", "wb") as f:
+#     writer = csv.writer(f)
+#     writer.writerows(citizen_details)
+
+# Search an assembly
+#citizens = search('shah',23,184)
+
+# Close session and cleanup
+session.close()
+print 'Done. Execution time : '+unicode(datetime.now()-startTime).encode('utf-8')
+
+
+

@@ -37,3 +37,6 @@ nosetests.xml
 
 # Image CAPTCHAs
 *.jpg
+
+# CSV data
+*.csv

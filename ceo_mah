@@ -15,6 +15,7 @@ url 		= 'http://103.23.150.75/marathi/FrmSearchPage.aspx?ID=1'
 search_space = 'abcdefghijklmnopqrstuvwxyz'
 #search_space = 'z'
 captcha_string = ''
+districts 	= (26,5,7,19,27,10,4,13,2,12,11,16,3,18,34,28,23,22,9,15,1,20,17,25,24,32,35,31,33,30,21,29,8,6,14)
 
 def fetchDistricts():
 	# Fetch the page
@@ -125,7 +126,7 @@ def parseCaptcha(filename):
 	except Exception, e:
 		# Wait for a bit and retry
 		print '######## Waiting and retrying CAPTCHA storage'
-		sleep(2)
+		sleep(5)
 		return parseCaptcha(filename)
 
 
@@ -185,7 +186,7 @@ def search(term,district,assembly):
 			citizen.append(assembly)
 			#print citizen
 			#citizen_details.append(citizen)
-			output = open("output.csv", "ab")
+			output = open("ceo_"+district+"_.csv", "ab")
 			writer = csv.writer(output)
 			writer.writerow(citizen)
 		else:
@@ -231,28 +232,30 @@ assemblies = fetchAssemblies(23)
 
 citizen_details = []
 # Loop thorugh all the assemblies and fetch the citizen data
-for assembly in assemblies:
-	print '######## Starting search for Assembly no.'+assembly['id']	
-	for char in search_space:
-		counter = 1		
-		print '######## Searching character \''+char+'\' ...'
-		while(counter < 5):
-			result = search(char,23,assembly['id'])
-			if(result):
-				break
-			else:
-				counter = counter + 1
-				
-				# Fetch the captcha image again for this session
-				captcha = fetchCaptcha()
+for district in districts:
+	print '######## District no. '+district+' #########'
+	for assembly in assemblies:
+		print '######## Assembly no.'+assembly['id']+' ########'	
+		for char in search_space:
+			counter = 1		
+			print '######## Searching character \''+char+'\' ...'
+			while(counter < 5):
+				result = search(char,district,assembly['id'])
+				if(result):
+					break
+				else:
+					counter = counter + 1
+					
+					# Fetch the captcha image again for this session
+					captcha = fetchCaptcha()
 
-				# Run image analysis on the image
-				captcha_string = parseCaptcha(captcha)
+					# Run image analysis on the image
+					captcha_string = parseCaptcha(captcha)
 
-				print '######## New Captcha string is: '+captcha_string
-				print '######## Trying again, request failed'
+					print '######## New Captcha string is: '+captcha_string
+					print '######## Trying again, request failed'
 
-print len(citizen_details)
+#print len(citizen_details)
 
 # with open("output.csv", "wb") as f:
 #     writer = csv.writer(f)

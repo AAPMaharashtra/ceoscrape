@@ -186,7 +186,7 @@ def search(term,district,assembly):
 			citizen.append(assembly)
 			#print citizen
 			#citizen_details.append(citizen)
-			output = open("ceo_"+district+"_.csv", "ab")
+			output = open("ceo_"+str(district)+"_.csv", "ab")
 			writer = csv.writer(output)
 			writer.writerow(citizen)
 		else:
@@ -233,7 +233,7 @@ assemblies = fetchAssemblies(23)
 citizen_details = []
 # Loop thorugh all the assemblies and fetch the citizen data
 for district in districts:
-	print '######## District no. '+district+' #########'
+	print '######## District no. '+str(district)+' #########'
 	for assembly in assemblies:
 		print '######## Assembly no.'+assembly['id']+' ########'	
 		for char in search_space:

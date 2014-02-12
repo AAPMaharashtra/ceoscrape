@@ -7,6 +7,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 import csv
 from time import sleep
+import cStringIO
 
 startTime 	= datetime.now()
 USER_AGENT 	= 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:26.0) Gecko/20100101 Firefox/26.0'
@@ -16,6 +17,7 @@ search_space = 'abcdefghijklmnopqrstuvwxyz'
 #search_space = 'z'
 captcha_string = ''
 districts 	= (26,5,7,19,27,10,4,13,2,12,11,16,3,18,34,28,23,22,9,15,1,20,17,25,24,32,35,31,33,30,21,29,8,6,14)
+img_count = 0
 
 def fetchDistricts():
 	# Fetch the page
@@ -109,25 +111,29 @@ def fetchCaptcha():
 	saved_captcha_filename = unicode(uuid.uuid4()).encode('utf-8')
 
 	# Save the CAPTCHA image to disk
-	output = open(saved_captcha_filename+'.jpg','wb')
-	output.write(response.content)
-	output.close()
+	# output = open(saved_captcha_filename+'.jpg','wb')
+	# output.write(response.content)
+	# output.close()
 
-	return saved_captcha_filename
+	#return saved_captcha_filename
+	return Image.open(cStringIO.StringIO(response.content))
 
-def parseCaptcha(filename):
+def parseCaptcha(fileval):
 	tools = pyocr.get_available_tools()[:]
+	global img_count
 	if len(tools) == 0:
 	    print "No OCR tool found"
 	    sys.exit(1)
 	try:
-		decoded = tools[0].image_to_string(Image.open(filename+'.jpg'), lang='eng')
+		decoded = tools[0].image_to_string(fileval, lang='eng')
 		return decoded
 	except Exception, e:
 		# Wait for a bit and retry
 		print '######## Waiting and retrying CAPTCHA storage'
 		sleep(5)
-		return parseCaptcha(filename)
+		if(img_count < 20):
+			img_count = img_count + 1
+			return parseCaptcha(filename)
 
 
 def search(term,district,assembly):
